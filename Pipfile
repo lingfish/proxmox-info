@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+humanize = "*"
+proxmoxer = "*"
+tabulate = "*"
+dynaconf = "*"
+click = "*"
+
+[dev-packages]
+setuptools-scm = ">=8"
+
+[requires]
+python_version = "3.9"

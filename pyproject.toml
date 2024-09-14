@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proxmox-info"
+dynamic = ["version"]
+authors = [
+    { name="Jason Lingohr", email="jason@lucid.net.au" },
+]
+description = "A CLI utility to return various info from the Proxmox API."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "tabulate",
+    "proxmoxer",
+    "humanize",
+    "dynaconf",
+    "click",
+]
+
+[project.scripts]
+proxmox-info = "proxmox_info.pminfo:main"
+
+[project.urls]
+Homepage = "https://github.com/lingfish/proxmox-info"
+Issues = "https://github.com/lingfish/proxmox-info/issues"
+
+[tool.setuptools_scm]
+version_file = "src/proxmox_info/_version.py"
+local_scheme = "no-local-version"
+
+[tool.pylint]
+max-line-length = 120
