@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 humanize = "*"
 proxmoxer = "*"
-tabulate = "*"
 dynaconf = "*"
 click = "*"
 requests = "*"

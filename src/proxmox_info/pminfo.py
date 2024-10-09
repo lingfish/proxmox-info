@@ -8,10 +8,8 @@ from typing import Optional
 
 import pandas
 import rich.table
-from htmltools.tags import title
 from proxmoxer import ProxmoxAPI
 import proxmoxer.core
-import tabulate
 import pandas as pd
 import humanize
 import click
