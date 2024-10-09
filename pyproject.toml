@@ -22,6 +22,7 @@ dependencies = [
     "humanize",
     "dynaconf",
     "click",
+    "requests",
 ]
 
 [project.scripts]

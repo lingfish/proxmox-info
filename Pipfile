@@ -9,9 +9,15 @@ proxmoxer = "*"
 tabulate = "*"
 dynaconf = "*"
 click = "*"
+requests = "*"
+pandas = "*"
+jinja2 = "*"
+rich = "*"
 
 [dev-packages]
 setuptools-scm = ">=8"
+build = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.9"
