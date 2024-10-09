@@ -23,6 +23,8 @@ dependencies = [
     "dynaconf",
     "click",
     "requests",
+    "pandas",
+    "rich",
 ]
 
 [project.scripts]
