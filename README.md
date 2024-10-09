@@ -7,20 +7,13 @@ Currently, it only reports storage vs machines info.
 ## Table of contents
 
 <!-- TOC -->
-* [Proxmox-grapple](#proxmox-grapple)
+* [proxmox-info](#proxmox-info)
   * [Table of contents](#table-of-contents)
   * [Purpose and uses](#purpose-and-uses)
-    * [Running binaries](#running-binaries)
-    * [Running things via a shell](#running-things-via-a-shell)
   * [Installation](#installation)
   * [Configuration](#configuration)
     * [Overview](#overview)
     * [Location](#location)
-    * [Configuration dump](#configuration-dump)
-    * [Configuration environments](#configuration-environments)
-    * [Breaking change in 2.0.0](#breaking-change-in-200)
-      * [Before 2.0.0 format](#before-200-format)
-      * [New format](#new-format)
   * [Supported versions](#supported-versions)
 <!-- TOC -->
 
