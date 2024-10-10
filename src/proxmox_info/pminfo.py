@@ -5,6 +5,7 @@ import sys
 from collections import OrderedDict
 from operator import index
 from typing import Optional
+from xmlrpc.client import Fault
 
 import pandas
 import rich.table
@@ -133,8 +134,9 @@ def df_to_table(pandas_dataframe: pandas.DataFrame, rich_table: rich.table.Table
 @click.option('--storage', '-s', default='all', help='Filter by storage name')
 @click.option('--output', '-o', default='basic', help='The output format: basic or tree')
 @click.option('--filter', '-f', default='running', help='Status of machines to filter: running or all')
+@click.option('--pager/--no-pager', '-l', default=False, help='Run the output through the system pager')
 @click.version_option(version=__version__)
-def main(host, user, password, verify, timeout, storage, output, filter):
+def main(host, user, password, verify, timeout, storage, output, filter, pager):
     validation_messages = {
         'must_exist_true': '{name} is required',
         'condition': '{name} is required',
@@ -267,7 +269,11 @@ def main(host, user, password, verify, timeout, storage, output, filter):
                     print('Couldn\'t get datastores, moving on...')
 
     if output == 'tree':
-        console.print(tree)
+        if pager:
+            with console.pager():
+                console.print(tree)
+        else:
+            console.print(tree)
 
 if __name__ == '__main__':
     main()
