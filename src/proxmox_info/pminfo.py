@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 
-import datetime as dt
 import sys
-from collections import OrderedDict
 from enum import Enum
-from operator import index
 from typing import Optional
-from xmlrpc.client import Fault
 
 import pandas
 import rich.table
@@ -67,14 +63,6 @@ def rejig_machines(machines: pandas.DataFrame) -> pandas.DataFrame:
     left_columns = ['name', 'vmid', 'status']
     new_columns = left_columns + [col for col in machines if col not in left_columns]
     machines = machines.reindex(columns=new_columns)
-
-    # Now build a list of columns to force tabulate alignment
-    align = ['global'] * len(machines.columns)
-    for k in ['maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap']:
-        try:
-            align[machines.columns.get_loc(k)] = 'right'
-        except KeyError:
-            pass
 
     return machines
 
@@ -204,7 +192,6 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager):
                 tree = Tree(f'Node: {node["node"]}')
 
             for current_storage in current_node.storage.get(content='images,rootdir'):
-                # inspect(current_storage)
                 try:
                     status.update(f'Fetching storage: {current_storage["storage"]}')
                     if storage == 'all' or current_storage['storage'] == storage:
