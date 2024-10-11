@@ -3,6 +3,7 @@
 import datetime as dt
 import sys
 from collections import OrderedDict
+from enum import Enum
 from operator import index
 from typing import Optional
 from xmlrpc.client import Fault
@@ -29,7 +30,7 @@ from ._version import __version__
 pd.options.mode.copy_on_write = True
 install(show_locals=True)
 
-def machines_by_storage(current_node: proxmoxer.ProxmoxResource, current_storage: dict) -> dict:
+def machines_by_storage(current_node: proxmoxer.ProxmoxResource, current_storage: dict) -> pandas.DataFrame:
     """
     Finds all machines in a specified storage.
 
@@ -40,16 +41,8 @@ def machines_by_storage(current_node: proxmoxer.ProxmoxResource, current_storage
     :return: The machines running on the specified storage.
     :rtype: dict
     """
-    machines = current_node.storage(current_storage['storage']).content.get()
-    final_machines = {}
-    for machine in machines:
-        try:
-            if machine['content'] in ['backup', 'vztmpl']:
-                continue
-            final_machines[machine['vmid']] = machine.values()
-        except KeyError:
-            pass
-    return final_machines
+    df = pd.DataFrame(current_node.storage(current_storage['storage']).content.get())
+    return df[df['content'].isin(['images', 'rootdir'])]
 
 
 def rejig_machines(machines: pandas.DataFrame) -> pandas.DataFrame:
@@ -69,6 +62,7 @@ def rejig_machines(machines: pandas.DataFrame) -> pandas.DataFrame:
             pass
 
     machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
+    machines['pid'] = machines['pid'].astype(int)
     machines.sort_index(axis=1, inplace=True)
     left_columns = ['name', 'vmid', 'status']
     new_columns = left_columns + [col for col in machines if col not in left_columns]
@@ -125,6 +119,11 @@ def df_to_table(pandas_dataframe: pandas.DataFrame, rich_table: rich.table.Table
     return rich_table
 
 
+class MachineType(Enum):
+    VMs = 'Virtual machines'
+    LXCs = "Linux containers"
+
+
 @click.command()
 @click.option('--host', '-h', help='The Proxmox hostname')
 @click.option('--user', '-u', help='The Proxmox username')
@@ -171,27 +170,28 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager):
 
     console = Console()
 
-    vm_col_align = {
-        'vmid': 'right',
-        'cpus': 'right',
-        'maxdisk': 'right',
-        'maxmem': 'right',
-        'mem': 'right',
-        'netout': 'right',
-        'netin': 'right',
-        'pid': 'right',
-    }
-
-    lxc_col_align = {
-        'vmid': 'right',
-        'cpus': 'right',
-        'maxdisk': 'right',
-        'maxmem': 'right',
-        'maxswap': 'right',
-        'mem': 'right',
-        'netout': 'right',
-        'netin': 'right',
-        'pid': 'right',
+    col_align = {
+        MachineType.VMs: {
+            'vmid': 'right',
+            'cpus': 'right',
+            'maxdisk': 'right',
+            'maxmem': 'right',
+            'mem': 'right',
+            'netout': 'right',
+            'netin': 'right',
+            'pid': 'right',
+        },
+        MachineType.LXCs: {
+            'vmid': 'right',
+            'cpus': 'right',
+            'maxdisk': 'right',
+            'maxmem': 'right',
+            'maxswap': 'right',
+            'mem': 'right',
+            'netout': 'right',
+            'netin': 'right',
+            'pid': 'right',
+        }
     }
 
     for node in proxmox.nodes.get():
@@ -214,53 +214,37 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager):
                             tree_storage = tree.add(f'[green]Storage: {current_storage["storage"]}')
 
                         machines = machines_by_storage(current_node, current_storage)
+                        if machines.empty:
+                            continue
 
-                        status.update(f'Fetching VMs from storage: {current_storage["storage"]}')
-                        qemu = current_node.qemu.get()
-                        df_vms = pd.DataFrame([x for x in qemu if int(x['vmid']) in machines.keys()])
-                        if not df_vms.empty:
-                            final_vms = rejig_machines(df_vms.loc[df_vms['status'] == filter] if filter == 'running' else df_vms)
-                        else:
-                            final_vms = pd.DataFrame()
-                        if not final_vms.empty:
-                            table = Table(title='Virtual machines', show_header=True, header_style='on grey19', box=box.MINIMAL_HEAVY_HEAD)
-                            table = df_to_table(final_vms, table, show_index=False, col_align_map=vm_col_align)
+                        for container_type in MachineType:
+                            status.update(f'Fetching storage: {current_storage["storage"]} :right_arrow: {container_type.name}')
+                            if container_type == MachineType.VMs:
+                                df = pd.DataFrame(current_node.qemu.get())
+                            elif container_type == MachineType.LXCs:
+                                df = pd.DataFrame(current_node.lxc.get())
+                            df = df[df['vmid'].isin(machines['vmid'])]
 
-                            if output == 'basic':
-                                console.print(f'\n[bright_yellow]VMs: {" ".join(str(x) for x in final_vms["vmid"].to_list())}')
-                                console.print(table)
-                            elif output == 'tree':
-                                tree_vms = tree_storage.add(Group(':computer: VMs :arrow_lower_right:', table))
-                        else:
-                            msg = '[bright_yellow]No VMs found'
-                            if output == 'basic':
-                                console.print(msg)
-                            elif output == 'tree':
-                                tree_vms = tree_storage.add(Group(':computer: VMs :arrow_lower_right:', msg))
+                            if not df.empty:
+                                final_machines = rejig_machines(df[df['status'] == filter] if filter == 'running' else df)
+                            else:
+                                final_machines = pd.DataFrame()
 
-                        status.update(f'Fetching LXCs from storage: {current_storage["storage"]}')
-                        lxc = current_node.lxc.get()
-                        df_lxcs = pd.DataFrame([x for x in lxc if int(x['vmid']) in machines.keys()])
-                        if not df_lxcs.empty:
-                            final_lxcs = rejig_machines(df_lxcs.loc[df_lxcs['status'] == filter] if filter == 'running' else df_lxcs)
-                        else:
-                            final_lxcs = pd.DataFrame()
-                        if not final_lxcs.empty:
+                            if not final_machines.empty:
+                                table = Table(title=container_type.value, show_header=True, header_style='on grey19', box=box.MINIMAL_HEAVY_HEAD)
+                                table = df_to_table(final_machines, table, show_index=False, col_align_map=col_align[container_type])
 
-                            table = Table(title='Linux containers', show_header=True, header_style='on grey19', box=box.MINIMAL_HEAVY_HEAD)
-                            table = df_to_table(final_lxcs, table, show_index=False, col_align_map=lxc_col_align)
-
-                            if output == 'basic':
-                                console.print(f'\n[bright_yellow]LXCs: {" ".join(str(x) for x in final_lxcs["vmid"].to_list())}')
-                                console.print(table)
-                            elif output == 'tree':
-                                tree_lxcs = tree_storage.add(Group(':computer: LXCs :arrow_lower_right:', table))
-                        else:
-                            msg = '[bright_yellow]No LXCs found'
-                            if output == 'basic':
-                                console.print(msg)
-                            elif output == 'tree':
-                                tree_lxcs = tree_storage.add(Group(':computer: LXCs :arrow_lower_right:', msg))
+                                if output == 'basic':
+                                    console.print(f'\n[bright_yellow]:computer: {container_type.name}: {" ".join(str(x) for x in final_machines["vmid"].to_list())}')
+                                    console.print(table)
+                                elif output == 'tree':
+                                    tree_storage.add(Group(f':computer: {container_type.name} :arrow_lower_right:', table))
+                            else:
+                                msg = f'[bright_yellow]No {container_type.name} found'
+                                if output == 'basic':
+                                    console.print(msg)
+                                elif output == 'tree':
+                                    tree_storage.add(Group(f':computer: {container_type.name} :arrow_lower_right:', msg))
 
                         if output == 'basic':
                             console.print()
