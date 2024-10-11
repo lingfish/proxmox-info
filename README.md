@@ -27,6 +27,16 @@ off it (a la vSphere storage vMotion).
 
 Then this is the tool for you.
 
+## Screenshots
+
+This is the default view:
+
+![screenshot](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/default%20screen.png)
+
+This is in tree view:
+
+![screenshot](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/tree%20view.png)
+
 ## Installation
 
 The recommended way to install `proxmox-info` is to use [pipx](https://pipx.pypa.io/stable/).

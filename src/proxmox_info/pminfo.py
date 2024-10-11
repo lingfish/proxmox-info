@@ -218,7 +218,8 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager):
                                 final_machines = pd.DataFrame()
 
                             if not final_machines.empty:
-                                table = Table(title=container_type.value, show_header=True, header_style='on grey19', box=box.MINIMAL_HEAVY_HEAD)
+                                table = Table(title=container_type.value, show_header=True, header_style='on grey19',
+                                              box=box.MINIMAL_HEAVY_HEAD, title_style='reverse')
                                 table = df_to_table(final_machines, table, show_index=False, col_align_map=col_align[container_type])
 
                                 if output == 'basic':
