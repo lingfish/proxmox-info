@@ -10,6 +10,7 @@ Currently, it only reports storage vs machines info.
 * [proxmox-info](#proxmox-info)
   * [Table of contents](#table-of-contents)
   * [Purpose and uses](#purpose-and-uses)
+  * [Screenshots](#screenshots)
   * [Installation](#installation)
   * [Configuration](#configuration)
     * [Overview](#overview)
