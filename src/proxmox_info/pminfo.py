@@ -5,8 +5,9 @@ from enum import Enum
 from typing import Optional
 
 import pandas
+import requests
 import rich.table
-from proxmoxer import ProxmoxAPI
+from proxmoxer import ProxmoxAPI, AuthenticationError
 import proxmoxer.core
 import pandas as pd
 import humanize
@@ -152,8 +153,12 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager, 
         print(e)
         sys.exit(1)
 
-    proxmox = ProxmoxAPI(settings.host, user=settings.user, password=settings.password, verify_ssl=settings.verify_ssl,
-                         timeout=settings.timeout)
+    try:
+        proxmox = ProxmoxAPI(settings.host, user=settings.user, password=settings.password, verify_ssl=settings.verify_ssl,
+                             timeout=settings.timeout)
+    except (proxmoxer.core.AuthenticationError, requests.exceptions.RequestException) as e:
+        click.echo(e, err=True)
+        sys.exit(1)
 
     console = Console()
 
