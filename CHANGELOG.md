@@ -1,3 +1,9 @@
+## 1.0.6 (2024-10-13)
+
+### added (1 change)
+
+- [Add 'human' CLI option](lucid/proxmox-info@c751276c95501dc81dcbc638cd86d35ddaa43594)
+
 ## 1.0.5 (2024-10-13)
 
 ### other (1 change)
