@@ -1,3 +1,9 @@
+## 1.0.7 (2024-10-14)
+
+### fixed (1 change)
+
+- [Handle Proxmox errors better.](lucid/proxmox-info@f7b7bcd802eb1fa2dba1869283870e6cc99b7f06)
+
 ## 1.0.6 (2024-10-13)
 
 ### added (1 change)
