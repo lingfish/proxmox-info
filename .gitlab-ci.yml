@@ -17,6 +17,12 @@ stages:
   - pypi
   - release
 
+workflow:
+  rules:
+    - if: $CI_COMMIT_TITLE =~ /Add changelog for version .*/
+      when: never
+    - when: always
+
 prepare:
   stage: prepare
   tags:
