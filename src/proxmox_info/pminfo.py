@@ -112,9 +112,9 @@ def fetch_storage_info(current_node: proxmoxer.ProxmoxResource, storage: str) ->
 
 
 @click.command()
-@click.option('--host', '-h', help='The Proxmox hostname')
-@click.option('--user', '-u', help='The Proxmox username')
-@click.option('--password', '-p', help='The Proxmox password')
+@click.option('--host', '-h', default=settings.HOST, help='The Proxmox hostname')
+@click.option('--user', '-u', default=settings.USER, help='The Proxmox username')
+@click.option('--password', '-p', default=settings.PASSWORD, help='The Proxmox password')
 @click.option('--verify/--no-verify', default=True, help='Verify Proxmox certificate')
 @click.option('--timeout', '-t', default=30, help='Timeout connecting to Proxmox')
 @click.option('--storage', '-s', default='all', help='Filter by storage name')
@@ -124,18 +124,6 @@ def fetch_storage_info(current_node: proxmoxer.ProxmoxResource, storage: str) ->
 @click.option('--human/--no-human', default=True, help='Show human-readable formatted output')
 @click.version_option(version=__version__)
 def main(host, user, password, verify, timeout, storage, output, filter, pager, human):
-    validation_messages = {
-        'must_exist_true': '{name} is required',
-        'condition': '{name} is required',
-    }
-
-    # Register validators but dont trigger validation.
-    settings.validators.register(
-        Validator('host', 'user', 'password', must_exist=True, condition=lambda v: v is not None, messages=validation_messages),
-        Validator('verify_ssl', is_type_of=bool),
-        Validator('timeout', is_type_of=int),
-    )
-
     try:
         settings.update({
             'host': host,
@@ -148,6 +136,8 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager, 
             'filter': filter,
         })
         settings.validators.validate()
+        if None in [user, password]:
+            raise ValidationError('user and password must be configured.')
 
     except ValidationError as e:
         print(e)
