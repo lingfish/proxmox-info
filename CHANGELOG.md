@@ -1,3 +1,9 @@
+## 1.0.8 (2024-11-18)
+
+### fixed (1 change)
+
+- [Fix being able to use both a config file, and CLI arguments.](lucid/proxmox-info@1c33d9c14b03c22c9102f4e7784d04aef5ae2cf3)
+
 ## 1.0.7 (2024-10-14)
 
 ### fixed (1 change)
