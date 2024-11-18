@@ -1,3 +1,9 @@
+## 1.0.9 (2024-11-18)
+
+### fixed (1 change)
+
+- [Bugfix around PID of machines when stopped, also make filter option better.](lucid/proxmox-info@312d3a5a6a34968144b48313a123ee5684c71c8c)
+
 ## 1.0.8 (2024-11-18)
 
 ### fixed (1 change)
