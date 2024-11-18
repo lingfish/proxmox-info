@@ -48,7 +48,7 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> pandas.DataFrame:
                 pass
 
         machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
-    machines['pid'] = machines['pid'].astype(int)
+    machines['pid'] = machines['pid'].fillna(0).astype(int)
     machines.sort_index(axis=1, inplace=True)
     left_columns = ['name', 'vmid', 'status']
     new_columns = left_columns + [col for col in machines if col not in left_columns]
@@ -209,7 +209,7 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager, 
                         df = df[df['vmid'].isin(machines['vmid'])]
 
                         if not df.empty:
-                            final_machines = rejig_machines(df[df['status'] == filter] if filter == 'running' else df, human)
+                            final_machines = rejig_machines(df[df['status'] == filter] if filter in ['stopped', 'running'] else df, human)
                         else:
                             final_machines = pd.DataFrame()
 
