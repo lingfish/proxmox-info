@@ -2,8 +2,10 @@
 
 import sys
 from enum import Enum
+from platform import machine
 from typing import Optional
 
+import numpy as np
 import pandas
 import requests
 import rich.table
@@ -36,33 +38,64 @@ def machines_by_storage(current_node: proxmoxer.ProxmoxResource, current_storage
     return df[df['content'].isin(['images', 'rootdir'])]
 
 
-def rejig_machines(machines: pandas.DataFrame, human: bool) -> pandas.DataFrame:
+def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.DataFrame, pandas.Series]:
     """This does a bunch of filtering and reorganising of machines to wittle down to the desired columns etc."""
 
     machines.drop(columns=['diskread', 'diskwrite', 'cpu', 'disk', 'swap', 'type'], errors='ignore', inplace=True)
+    for k in ['pid', 'vmid', 'cpus']:
+        machines[k] = machines[k].fillna(0).astype('int')
+        # print(machines[k])
+
+    for k in ['serial', 'template']:
+        if k in machines:
+            machines[k] = machines[k].fillna(0).astype(bool)
+
+    # totals = machines[['cpus', 'maxdisk', 'maxmem', 'mem', 'netin', 'netout']].sum(numeric_only=True)
+    totals = machines.sum(numeric_only=False)
+
     if human:
         for k in ['maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap']:
             try:
-                machines[k] = machines[k].map(humanize.naturalsize)
+                # machines.replace({k: 0}, 'N/A', inplace=True)
+                machines[k] = machines[k].map(lambda x: 'N/A' if x == 0 else x)
+                machines[k] = machines[k].map(lambda x: humanize.naturalsize(x) if isinstance(x, (float, int)) else x)
             except KeyError:
                 pass
 
         machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
-    machines['pid'] = machines['pid'].fillna(0).astype(int)
+        machines.replace({'now': 'N/A'}, inplace=True)
+
+    # for k in ['pid', 'vmid', 'cpus']:
+    #     machines[k] = machines[k].fillna(0).astype(int)
+    #
+    # for k in ['serial', 'template']:
+    #     if k in machines:
+    #         machines[k] = machines[k].fillna(0).astype(bool)
+            # machines.loc['Total', k] = machines.at['Total', k].astype('object')
+            # machines.loc['Total', k] = np.nan
+
+        # machines['serial'] = machines['serial'].fillna(0).astype(bool)
+        # machines.loc['Total', 'serial'].astype('str').values = 0
+        # machines.loc['Total', 'serial'] = ''
+    #     machines['template'] = machines['template'].fillna(0).astype(bool)
+    # except KeyError:
+    #     pass
+
     machines.sort_index(axis=1, inplace=True)
     left_columns = ['name', 'vmid', 'status']
     new_columns = left_columns + [col for col in machines if col not in left_columns]
     machines = machines.reindex(columns=new_columns)
 
-    return machines
+    return machines, totals
 
 
 def df_to_table(pandas_dataframe: pandas.DataFrame,
                 rich_table: rich.table.Table,
+                totals_dataframe: Optional[pandas.DataFrame] = None,
                 show_index: bool = True,
                 index_name: Optional[str] = None,
                 col_align_map: Optional[dict] = None
-    ) -> rich.table.Table:
+                ) -> rich.table.Table:
     """Convert a pandas.DataFrame object into a rich.Table object."""
 
     if show_index:
@@ -78,10 +111,18 @@ def df_to_table(pandas_dataframe: pandas.DataFrame,
                 pass
         rich_table.add_column(str(column), justify=align)
 
-    for index, value_list in enumerate(pandas_dataframe.values.tolist()):
+    to_list = pandas_dataframe.to_numpy(dtype=str, na_value='').tolist()
+
+    for index, value_list in enumerate(to_list[:-1]):
         row = [str(index)] if show_index else []
         row += [str(x) for x in value_list]
         rich_table.add_row(*row)
+
+    if (not totals_dataframe.empty):
+        totals_list = totals_dataframe.to_numpy(dtype=str, na_value='').tolist()
+        rich_table.add_section()
+        totals_list[-1][0] = 'Totals'
+        rich_table.add_row(*[str(x) for x in totals_list])
 
     return rich_table
 
@@ -93,22 +134,20 @@ class MachineType(Enum):
     LXCs = "Linux containers"
 
 
-def fetch_node_info(proxmox: ProxmoxAPI,
-                    node: proxmoxer.ProxmoxResource,
-                    console: Console
-    ) -> tuple[proxmoxer.ProxmoxResource, proxmoxer.ProxmoxResource, Status]:
+def fetch_node_info(proxmox: ProxmoxAPI, node: proxmoxer.ProxmoxResource, console: Console) -> tuple[
+    proxmoxer.ProxmoxResource, proxmoxer.ProxmoxResource, Status]:
     """Fetches node information."""
 
-    with console.status('Fetching info', spinner='dots10') as status:
-        current_node = proxmox.nodes(node['node'])
-        yield node['node'], current_node, status
+    with console.status("Fetching info", spinner="dots10") as status:
+        current_node = proxmox.nodes(node["node"])
+        yield node["node"], current_node, status
 
 
 def fetch_storage_info(current_node: proxmoxer.ProxmoxResource, storage: str) -> str:
     """Fetches storage information."""
-    for current_storage in current_node.storage.get(content='images,rootdir'):
-        if storage == 'all' or current_storage['storage'] == storage:
-            yield current_storage['storage']
+    for current_storage in current_node.storage.get(content="images,rootdir"):
+        if storage == "all" or current_storage["storage"] == storage:
+            yield current_storage["storage"]
 
 
 @click.command()
@@ -119,7 +158,7 @@ def fetch_storage_info(current_node: proxmoxer.ProxmoxResource, storage: str) ->
 @click.option('--timeout', '-t', default=30, help='Timeout connecting to Proxmox')
 @click.option('--storage', '-s', default='all', help='Filter by storage name')
 @click.option('--output', '-o', default='basic', help='The output format: basic or tree')
-@click.option('--filter', '-f', default='running', help='Status of machines to filter: running or all')
+@click.option('--filter', '-f', default='running', help='Status of machines to filter: running, stopped or all')
 @click.option('--pager/--no-pager', '-l', default=False, help='Run the output through the system pager')
 @click.option('--human/--no-human', default=True, help='Show human-readable formatted output')
 @click.version_option(version=__version__)
@@ -209,17 +248,20 @@ def main(host, user, password, verify, timeout, storage, output, filter, pager, 
                         df = df[df['vmid'].isin(machines['vmid'])]
 
                         if not df.empty:
-                            final_machines = rejig_machines(df[df['status'] == filter] if filter in ['stopped', 'running'] else df, human)
+                            final_machines, totals = rejig_machines(df[df['status'] == filter] if filter in ['stopped', 'running'] else df, human)
                         else:
-                            final_machines = pd.DataFrame()
+                            final_machines, totals = pd.DataFrame()
 
                         if not final_machines.empty:
                             table = Table(title=container_type.value, show_header=True, header_style='on grey19',
                                           box=box.MINIMAL_HEAVY_HEAD, title_style='reverse')
-                            table = df_to_table(final_machines, table, show_index=False, col_align_map=col_align[container_type])
+                            table = df_to_table(pandas_dataframe=final_machines, rich_table=table,
+                                                totals_dataframe=totals, show_index=False,
+                                                col_align_map=col_align[container_type])
 
                             if output == 'basic':
-                                console.print(f'\n[bright_yellow]:computer: {container_type.name}: {" ".join(str(x) for x in final_machines["vmid"].to_list())}')
+                                console.print(
+                                    f'\n[bright_yellow]:computer: {container_type.name}: {" ".join(str(x) for x in final_machines["vmid"].to_list())}')
                                 console.print(table)
                             elif output == 'tree':
                                 tree_storage.add(Group(f':computer: {container_type.name} :arrow_lower_right:', table))
