@@ -34,7 +34,10 @@ install(show_locals=True)
 def machines_by_storage(current_node: proxmoxer.ProxmoxResource, current_storage: str) -> pandas.DataFrame:
     """Finds all machines in a specified storage."""
 
-    df = pd.DataFrame(current_node.storage(current_storage).content.get())
+    content = current_node.storage(current_storage).content.get()
+    df = pd.DataFrame(content)
+    if df.empty:
+        return df
     return df[df['content'].isin(['images', 'rootdir'])]
 
 
@@ -43,11 +46,11 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.Data
 
     machines.drop(columns=['diskread', 'diskwrite', 'cpu', 'disk', 'swap', 'type'], errors='ignore', inplace=True)
     for k in ['pid', 'vmid', 'cpus']:
-        machines[k] = machines[k].fillna(0).astype('int')
-        # print(machines[k])
+        if k in machines.columns:
+            machines[k] = machines[k].fillna(0).astype('int')
 
     for k in ['serial', 'template']:
-        if k in machines:
+        if k in machines.columns:
             machines[k] = machines[k].fillna(0).astype(bool)
 
     # totals = machines[['cpus', 'maxdisk', 'maxmem', 'mem', 'netin', 'netout']].sum(numeric_only=True)
@@ -55,47 +58,36 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.Data
 
     if human:
         for k in ['maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap']:
-            try:
-                # machines.replace({k: 0}, 'N/A', inplace=True)
-                machines[k] = machines[k].map(lambda x: 'N/A' if x == 0 else x)
-                machines[k] = machines[k].map(lambda x: humanize.naturalsize(x) if isinstance(x, (float, int)) else x)
-            except KeyError:
-                pass
+            if k in machines.columns:
+                try:
+                    # machines.replace({k: 0}, 'N/A', inplace=True)
+                    machines[k] = machines[k].map(lambda x: 'N/A' if x == 0 else x)
+                    machines[k] = machines[k].map(lambda x: humanize.naturalsize(x) if isinstance(x, (float, int)) else x)
+                except (KeyError, TypeError, ValueError):
+                    pass
 
-        machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
-        machines.replace({'now': 'N/A'}, inplace=True)
-
-    # for k in ['pid', 'vmid', 'cpus']:
-    #     machines[k] = machines[k].fillna(0).astype(int)
-    #
-    # for k in ['serial', 'template']:
-    #     if k in machines:
-    #         machines[k] = machines[k].fillna(0).astype(bool)
-            # machines.loc['Total', k] = machines.at['Total', k].astype('object')
-            # machines.loc['Total', k] = np.nan
-
-        # machines['serial'] = machines['serial'].fillna(0).astype(bool)
-        # machines.loc['Total', 'serial'].astype('str').values = 0
-        # machines.loc['Total', 'serial'] = ''
-    #     machines['template'] = machines['template'].fillna(0).astype(bool)
-    # except KeyError:
-    #     pass
+        if 'uptime' in machines.columns:
+            machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
+            machines.replace({'now': 'N/A'}, inplace=True)
 
     machines.sort_index(axis=1, inplace=True)
     left_columns = ['name', 'vmid', 'status']
-    new_columns = left_columns + [col for col in machines if col not in left_columns]
+    # Only include columns that actually exist in the DataFrame
+    existing_left_columns = [col for col in left_columns if col in machines.columns]
+    other_columns = [col for col in machines.columns if col not in left_columns]
+    new_columns = existing_left_columns + other_columns
     machines = machines.reindex(columns=new_columns)
 
     return machines, totals
 
 
 def df_to_table(pandas_dataframe: pandas.DataFrame,
-                rich_table: rich.table.Table,
-                totals_dataframe: Optional[pandas.DataFrame] = None,
-                show_index: bool = True,
-                index_name: Optional[str] = None,
-                col_align_map: Optional[dict] = None
-                ) -> rich.table.Table:
+                 rich_table: rich.table.Table,
+                 totals_dataframe: Optional[pandas.DataFrame] = None,
+                 show_index: bool = True,
+                 index_name: Optional[str] = None,
+                 col_align_map: Optional[dict] = None
+                 ) -> rich.table.Table:
     """Convert a pandas.DataFrame object into a rich.Table object."""
 
     if show_index:
@@ -111,18 +103,33 @@ def df_to_table(pandas_dataframe: pandas.DataFrame,
                 pass
         rich_table.add_column(str(column), justify=align)
 
-    to_list = pandas_dataframe.to_numpy(dtype=str, na_value='').tolist()
+    # Convert DataFrame to list of lists, handling mixed types safely
+    to_list = []
+    for _, row in pandas_dataframe.iterrows():
+        processed_row = []
+        for val in row:
+            if isinstance(val, (list, tuple, np.ndarray)):
+                # Handle arrays/lists by converting to string representation
+                processed_row.append(str(val))
+            elif pd.isna(val):
+                processed_row.append('')
+            else:
+                processed_row.append(str(val))
+        to_list.append(processed_row)
 
-    for index, value_list in enumerate(to_list[:-1]):
+    for index, value_list in enumerate(to_list):
         row = [str(index)] if show_index else []
-        row += [str(x) for x in value_list]
+        row += value_list  # Already converted to strings above
         rich_table.add_row(*row)
 
-    if (not totals_dataframe.empty):
+    if totals_dataframe is not None and not totals_dataframe.empty:
         totals_list = totals_dataframe.to_numpy(dtype=str, na_value='').tolist()
         rich_table.add_section()
-        totals_list[-1][0] = 'Totals'
-        rich_table.add_row(*[str(x) for x in totals_list])
+        # Set the first cell of the last row to 'Totals'
+        if totals_list and len(totals_list) > 0:
+            totals_list[-1][0] = 'Totals'
+        for totals_row in totals_list:
+            rich_table.add_row(*[str(x) for x in totals_row])
 
     return rich_table
 
