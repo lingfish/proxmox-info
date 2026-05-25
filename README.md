@@ -1,5 +1,9 @@
 # proxmox-info
 
+[![PyPI - Version](https://img.shields.io/pypi/v/proxmox-info.svg)](https://pypi.org/project/proxmox-info/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/proxmox-info.svg)](https://pypi.org/project/proxmox-info/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 A CLI utility to return various info from the Proxmox API.
 
 Currently, it only reports storage vs machines info.
@@ -9,6 +13,7 @@ Currently, it only reports storage vs machines info.
 <!-- TOC -->
 * [proxmox-info](#proxmox-info)
   * [Table of contents](#table-of-contents)
+  * [Features](#features)
   * [Purpose and uses](#purpose-and-uses)
   * [Screenshots](#screenshots)
   * [Installation](#installation)
@@ -18,6 +23,15 @@ Currently, it only reports storage vs machines info.
   * [Supported versions](#supported-versions)
 <!-- TOC -->
 
+## Features
+
+- **Per-datastore VM/container listing** — see which QEMU VMs and LXC containers live on each storage volume
+- **Two output modes** — clean table view or hierarchical tree view
+- **Multiple node support** — aggregates across all Proxmox nodes in your cluster
+- **Status filtering** — show only running machines, stopped machines, or all
+- **Human-readable output** — automatic formatting of sizes and uptimes via `--human`
+- **Pager support** — pipe through your system pager with `--pager`
+- **Config file or CLI args** — YAML config with Dynaconf, or override everything on the command line
 
 ## Purpose and uses
 
@@ -30,13 +44,13 @@ Then this is the tool for you.
 
 ## Screenshots
 
-This is the default view:
+Default table view — VMs and containers listed per datastore with status, CPU, memory, disk, and network columns:
 
-![screenshot](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/default%20screen.png)
+![Default table view showing VMs grouped by storage](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/default%20screen.png)
 
-This is in tree view:
+Tree view — hierarchical display of node > storage > machine type > machine details:
 
-![screenshot](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/tree%20view.png)
+![Tree view showing node hierarchy](https://raw.githubusercontent.com/lingfish/proxmox-info/refs/heads/main/docs/tree%20view.png)
 
 ## Installation
 
