@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "proxmox-info"
@@ -39,9 +39,44 @@ proxmox-info = "proxmox_info.pminfo:main"
 Homepage = "https://github.com/lingfish/proxmox-info"
 Issues = "https://github.com/lingfish/proxmox-info/issues"
 
-[tool.setuptools_scm]
-version_file = "src/proxmox_info/_version.py"
-local_scheme = "no-local-version"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/proxmox_info/_version.py"
+
+[tool.hatch.envs.hatch-test.env-vars]
+FORCE_ENV_FOR_DYNACONF = "testing"
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "pytest --junitxml=report.xml{env:HATCH_TEST_ARGS:} {args}"
+run-cov = "- coverage run -m pytest --junitxml=report.xml{env:HATCH_TEST_ARGS:} {args}; coverage combine; coverage report -m; coverage xml"
+cov-combine = "echo done"
+cov-report = "echo done"
+
+[tool.hatch.envs.coverage]
+detached = true
+dependencies = ["coverage>=6.4.4"]
+
+[tool.hatch.envs.coverage.scripts]
+html = "coverage html"
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = ["src"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+exclude_lines = [
+    "#\\s*pragma: no cover",
+    "^\\s*raise AssertionError\\b",
+    "^\\s*raise NotImplementedError\\b",
+    "^\\s*return NotImplemented\\b",
+    "^\\s*raise$",
+    "^if __name__ == ['\"]__main__['\"]:$",
+]
 
 [tool.pylint]
 max-line-length = 120

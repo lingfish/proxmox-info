@@ -44,8 +44,8 @@ test:
     - when: on_success
   script:
     - python --version ; pip --version  # For debugging
-    - pip install pytest tox click
-    - tox -e py${VERSION}
+    - pip install hatch
+    - hatch test --cover -- -v tests
   parallel:
     matrix:
       - VERSION: ['3.9', '3.11']
@@ -58,6 +58,7 @@ test:
       junit: report.xml
     paths:
       - report.xml
+      - coverage.xml
   coverage: '/TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
 build:
