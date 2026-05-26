@@ -89,7 +89,7 @@ pypi_test:
     - apt-get update
     - pip install hatch
     - ls -l dist/
-    - hatch publish
+    - hatch publish -r test
 
 pypi_prod:
   stage: pypi
