@@ -3,7 +3,7 @@
 import sys
 from enum import Enum
 from platform import machine
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pandas
@@ -53,8 +53,7 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.Data
         if k in machines.columns:
             machines[k] = machines[k].fillna(0).astype(bool)
 
-    # totals = machines[['cpus', 'maxdisk', 'maxmem', 'mem', 'netin', 'netout']].sum(numeric_only=True)
-    totals = machines.sum(numeric_only=False)
+    totals = machines.select_dtypes(include='number').sum()
 
     if human:
         for k in ['maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap']:
@@ -83,7 +82,7 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.Data
 
 def df_to_table(pandas_dataframe: pandas.DataFrame,
                  rich_table: rich.table.Table,
-                 totals_dataframe: Optional[pandas.DataFrame] = None,
+                 totals_dataframe: Optional[Union[pandas.DataFrame, pandas.Series]] = None,
                  show_index: bool = True,
                  index_name: Optional[str] = None,
                  col_align_map: Optional[dict] = None
@@ -123,13 +122,18 @@ def df_to_table(pandas_dataframe: pandas.DataFrame,
         rich_table.add_row(*row)
 
     if totals_dataframe is not None and not totals_dataframe.empty:
-        totals_list = totals_dataframe.to_numpy(dtype=str, na_value='').tolist()
+        if isinstance(totals_dataframe, pandas.Series):
+            totals_dict = totals_dataframe.to_dict()
+            totals_row = [str(totals_dict.get(col, '')) for col in pandas_dataframe.columns]
+        else:
+            totals_list = totals_dataframe.to_numpy(dtype=str, na_value='').tolist()
+            totals_row = [str(x) for x in totals_list[0]] if totals_list else []
+        if show_index:
+            totals_row.insert(0, 'Totals')
+        else:
+            totals_row[0] = 'Totals'
         rich_table.add_section()
-        # Set the first cell of the last row to 'Totals'
-        if totals_list and len(totals_list) > 0:
-            totals_list[-1][0] = 'Totals'
-        for totals_row in totals_list:
-            rich_table.add_row(*[str(x) for x in totals_row])
+        rich_table.add_row(*totals_row)
 
     return rich_table
 

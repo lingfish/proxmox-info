@@ -114,16 +114,17 @@ def test_verify_ssl_validation():
 
 def test_main_function_validation_missing_credentials():
     """Test that main function handles missing credentials properly"""
-    # We'll test this by mocking the main function's validation logic
-    from src.proxmox_info.pminfo import main
+    from unittest.mock import patch
+    from src.proxmox_info.config import settings as cfg
     from click.testing import CliRunner
     
     runner = CliRunner()
-    # Invoke without required credentials
-    result = runner.invoke(main, [])
-    # Should exit with error code and show validation error
+    with patch.object(cfg, 'USER', None), patch.object(cfg, 'PASSWORD', None):
+        import importlib
+        import src.proxmox_info.pminfo as pm
+        importlib.reload(pm)
+        result = runner.invoke(pm.main, [])
     assert result.exit_code == 1
-    # The error message might vary, but should indicate missing credentials
 
 
 def test_main_function_validation_with_credentials():

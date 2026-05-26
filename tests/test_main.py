@@ -10,12 +10,15 @@ class TestMainCLI:
     
     def test_main_validation_missing_credentials(self):
         """Test that main function handles missing credentials properly"""
+        from src.proxmox_info.config import settings as cfg
         runner = CliRunner()
-        # Invoke without required credentials
-        result = runner.invoke(main, [])
-        # Should exit with error code and show validation error
+        # Force user/password to None regardless of config file
+        with patch.object(cfg, 'USER', None), patch.object(cfg, 'PASSWORD', None):
+            import importlib
+            import src.proxmox_info.pminfo as pm
+            importlib.reload(pm)
+            result = runner.invoke(pm.main, [])
         assert result.exit_code == 1
-        # The error message should indicate missing credentials
         assert 'user and password must be configured' in result.output
     
     def test_main_validation_with_credentials_no_api_error(self):

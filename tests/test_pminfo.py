@@ -81,6 +81,13 @@ class TestRejigMachines:
         # Check some values
         assert totals['cpus'] == 10  # 4+4+2
         assert totals['vmid'] == 390  # 150+132+108
+
+    def test_totals_excludes_string_columns(self, sample_lxc_data):
+        """Test that totals does not contain concatenated string columns"""
+        _, totals = rejig_machines(DataFrame(sample_lxc_data), human=False)
+        assert 'name' not in totals.index
+        assert 'status' not in totals.index
+        assert 'tags' not in totals.index
     
     def test_human_vs_non_human_mode(self, sample_lxc_data):
         """Test difference between human and non-human mode"""
@@ -144,6 +151,20 @@ class TestDfToTable:
         # to_list[:-1] excludes last data row, so 1 data + 1 section + 1 totals = 3 rows
         assert len(table.rows) == 3  # 1 data + 1 section + 1 totals
     
+    def test_with_totals_series(self):
+        """Test with non-empty totals Series (runtime type from rejig_machines)"""
+        df = DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        totals = Series({'col1': 3, 'col2': 7})
+        table = df_to_table(df, Table(), totals_dataframe=totals)
+        assert len(table.rows) == 3  # 2 data + 1 section + 1 totals
+
+    def test_with_totals_series_show_index_false(self):
+        """Test with totals Series and show_index=False"""
+        df = DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        totals = Series({'col1': 3, 'col2': 7})
+        table = df_to_table(df, Table(), totals_dataframe=totals, show_index=False)
+        assert len(table.rows) == 3  # 2 data + 1 section + 1 totals
+
     def test_with_empty_totals_dataframe(self):
         """Test with empty totals DataFrame (should not add section)"""
         df = DataFrame({'col1': [1, 2], 'col2': [3, 4]})
