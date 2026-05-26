@@ -45,12 +45,6 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "src/proxmox_info/_version.py"
 
-[tool.hatch.envs.hatch-test]
-dependencies = [
-    "pytest",
-    "pytest-mock",
-]
-
 [tool.hatch.envs.hatch-test.env-vars]
 FORCE_ENV_FOR_DYNACONF = "testing"
 
