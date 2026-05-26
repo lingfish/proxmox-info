@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "proxmox-info"
 dynamic = ["version"]
 authors = [
-    { name="Jason Lingohr", email="jason@lucid.net.au" },
+    { name="Jason Lingohr" },
 ]
 description = "A CLI utility to return various info from the Proxmox API."
 readme = "README.md"
