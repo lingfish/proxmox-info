@@ -74,13 +74,16 @@ class TestRejigMachines:
         """Test that totals Series is returned correctly"""
         df, totals = rejig_machines(DataFrame(sample_lxc_data), human=False)
         assert isinstance(totals, Series)
-        # Should have sums for numeric columns
+        # Should have sums for meaningful numeric columns
         assert 'cpus' in totals.index
         assert 'maxdisk' in totals.index
         assert 'maxmem' in totals.index
-        # Check some values
-        assert totals['cpus'] == 10  # 4+4+2
-        assert totals['vmid'] == 390  # 150+132+108
+        # vmid should be count, not sum
+        assert totals['vmid'] == 3  # count of 3 machines
+        # uptime should be sum of seconds
+        assert totals['uptime'] == 7809455  # 3610802+587726+3610927
+        # pid should NOT be in totals (meaningless to sum)
+        assert 'pid' not in totals.index
 
     def test_totals_excludes_string_columns(self, sample_lxc_data):
         """Test that totals does not contain concatenated string columns"""
@@ -89,6 +92,19 @@ class TestRejigMachines:
         assert 'status' not in totals.index
         assert 'tags' not in totals.index
     
+    def test_totals_human(self, sample_lxc_data):
+        """Test totals are humanized when human=True"""
+        _, totals = rejig_machines(DataFrame(sample_lxc_data), human=True)
+        # Byte-size totals should be humanized strings
+        assert isinstance(totals['maxdisk'], str)
+        assert isinstance(totals['maxmem'], str)
+        assert isinstance(totals['mem'], str)
+        # vmid should still be a count (int)
+        assert totals['vmid'] == 3
+        # uptime should be humanized as duration (e.g. "3 months", "90 days")
+        assert isinstance(totals['uptime'], str)
+        assert totals['uptime'] != str(7809455)  # not raw seconds
+
     def test_human_vs_non_human_mode(self, sample_lxc_data):
         """Test difference between human and non-human mode"""
         df_nonhuman, _ = rejig_machines(DataFrame(sample_lxc_data), human=False)
