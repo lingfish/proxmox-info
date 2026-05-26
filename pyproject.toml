@@ -54,24 +54,6 @@ dependencies = [
 [tool.hatch.envs.hatch-test.env-vars]
 FORCE_ENV_FOR_DYNACONF = "testing"
 
-[tool.hatch.envs.hatch-test.scripts]
-run = "pytest --junitxml=report.xml{env:HATCH_TEST_ARGS:} {args}"
-run-cov = "- coverage run -m pytest --junitxml=report.xml{env:HATCH_TEST_ARGS:} {args}; coverage combine; coverage report -m; coverage xml"
-cov-combine = "echo done"
-cov-report = "echo done"
-
-[tool.hatch.envs.coverage]
-detached = true
-dependencies = ["coverage>=6.4.4"]
-
-[tool.hatch.envs.coverage.scripts]
-html = "coverage html"
-
-[tool.coverage.run]
-branch = true
-parallel = true
-source = ["src"]
-
 [tool.coverage.report]
 skip_covered = true
 show_missing = true

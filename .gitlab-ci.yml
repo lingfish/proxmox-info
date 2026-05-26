@@ -49,16 +49,13 @@ test:
   parallel:
     matrix:
       - VERSION: ['3.10', '3.11', '3.12']
-  artifacts:
-    when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-      junit: report.xml
-    paths:
-      - report.xml
-      - coverage.xml
+  # Can't do this yet until PR https://github.com/pypa/hatch/pull/2232 done
+  # artifacts:
+  #   when: always
+  #   reports:
+  #     coverage_report:
+  #       coverage_format: cobertura
+  #       path: coverage.xml
   coverage: '/TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
 build:
