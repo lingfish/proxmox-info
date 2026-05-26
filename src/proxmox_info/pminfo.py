@@ -53,21 +53,40 @@ def rejig_machines(machines: pandas.DataFrame, human: bool) -> tuple[pandas.Data
         if k in machines.columns:
             machines[k] = machines[k].fillna(0).astype(bool)
 
-    totals = machines.select_dtypes(include='number').sum()
+    # Compute totals for columns where sum is meaningful
+    sum_columns = ['cpus', 'maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap', 'uptime']
+    existing_sum_columns = [col for col in sum_columns if col in machines.columns]
+    totals = machines[existing_sum_columns].sum() if existing_sum_columns else pd.Series(dtype='float64')
+
+    # vmid: count instead of sum
+    if 'vmid' in machines.columns:
+        totals['vmid'] = len(machines)
+
+    # Convert to object dtype so humanized strings can be stored
+    totals = totals.astype(object)
 
     if human:
         for k in ['maxdisk', 'maxmem', 'mem', 'netout', 'netin', 'maxswap']:
             if k in machines.columns:
                 try:
-                    # machines.replace({k: 0}, 'N/A', inplace=True)
                     machines[k] = machines[k].map(lambda x: 'N/A' if x == 0 else x)
                     machines[k] = machines[k].map(lambda x: humanize.naturalsize(x) if isinstance(x, (float, int)) else x)
+                except (KeyError, TypeError, ValueError):
+                    pass
+            if k in totals.index:
+                try:
+                    totals[k] = humanize.naturalsize(totals[k])
                 except (KeyError, TypeError, ValueError):
                     pass
 
         if 'uptime' in machines.columns:
             machines['uptime'] = machines['uptime'].map(humanize.naturaltime)
             machines.replace({'now': 'N/A'}, inplace=True)
+        if 'uptime' in totals.index:
+            try:
+                totals['uptime'] = humanize.naturaldelta(totals['uptime'])
+            except (KeyError, TypeError, ValueError):
+                pass
 
     machines.sort_index(axis=1, inplace=True)
     left_columns = ['name', 'vmid', 'status']
