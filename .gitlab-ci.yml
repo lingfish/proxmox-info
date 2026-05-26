@@ -5,10 +5,12 @@ image: python:latest
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-# https://pip.pypa.io/en/stable/topics/caching/
-cache:
-  paths:
-    - .cache/pip
+default:
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pip
+    policy: pull-push
 
 stages:
   - prepare
@@ -45,7 +47,7 @@ test:
   script:
     - python --version ; pip --version  # For debugging
     - pip install hatch
-    - hatch test --cover -- -v tests
+    - hatch -vv test -v --cover
   parallel:
     matrix:
       - VERSION: ['3.10', '3.11', '3.12']
