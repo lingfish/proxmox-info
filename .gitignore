@@ -11,3 +11,15 @@ htmlcov/
 .pytest_cache/
 .idea/
 _version.py
+
+# pytest
+report.xml
+
+# lockfiles
+Pipfile.lock
+
+# IDE
+.vscode/
+
+# backups
+*.bak
