@@ -4,7 +4,7 @@
 - Build system: Hatch (hatchling + hatch-vcs). All commands via `hatch`.
 - Run tests: `hatch test`
 - Run coverage: `hatch test --cover`
-- CI runs `hatch test --cover -- -v tests` across Python 3.9, 3.11 (GitLab CI, `.gitlab-ci.yml`)
+- CI runs `hatch test --cover -- -v tests` across Python 3.10, 3.11, 3.12 (GitLab CI, `.gitlab-ci.yml`)
 
 ## Package layout
 - **src-layout**: `src/proxmox_info/` — must have `__init__.py` for hatchling to discover it during editable install
@@ -29,7 +29,7 @@
 
 ## Style
 - Line length 120, single quotes (`[tool.ruff.format] quote-style = "single"`)
-- Python >=3.9
+- Python >=3.10
 
 ## Dependencies
 `proxmoxer`, `humanize`, `dynaconf`, `click`, `requests`, `pandas`, `rich`, `numpy`

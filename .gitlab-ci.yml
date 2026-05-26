@@ -48,7 +48,7 @@ test:
     - hatch test --cover -- -v tests
   parallel:
     matrix:
-      - VERSION: ['3.9', '3.11']
+      - VERSION: ['3.10', '3.11', '3.12']
   artifacts:
     when: always
     reports:
