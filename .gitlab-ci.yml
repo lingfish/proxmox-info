@@ -47,7 +47,7 @@ test:
   script:
     - python --version ; pip --version  # For debugging
     - pip install hatch
-    - hatch -vv test -v --cover
+    - hatch test --cover
   parallel:
     matrix:
       - VERSION: ['3.10', '3.11', '3.12']
@@ -66,8 +66,9 @@ build:
     - docker
   image: "python:latest"
   script:
-    - pip install build
-    - python3 -m build
+    - apt-get update
+    - pip install hatch
+    - hatch build
   artifacts:
     paths:
       - dist/
@@ -82,11 +83,13 @@ pypi_test:
       when: never
     - when: on_success
   variables:
-    TWINE_USERNAME: $PYPI_TEST_USERNAME
-    TWINE_PASSWORD: $PYPI_TEST_PASSWORD
+    HATCH_INDEX_USER: $PYPI_TEST_USERNAME
+    HATCH_INDEX_AUTH: $PYPI_TEST_PASSWORD
   script:
-    - pip install twine
-    - python3 -m twine upload --repository testpypi --skip-existing dist/*
+    - apt-get update
+    - pip install hatch
+    - ls -l dist/
+    - hatch publish
 
 pypi_prod:
   stage: pypi
@@ -96,11 +99,12 @@ pypi_prod:
   rules:
     - if: $CI_COMMIT_TAG
   variables:
-    TWINE_USERNAME: $PYPI_PROD_USERNAME
-    TWINE_PASSWORD: $PYPI_PROD_PASSWORD
+    HATCH_INDEX_USER: $PYPI_PROD_USERNAME
+    HATCH_INDEX_AUTH: $PYPI_PROD_PASSWORD
   script:
-    - pip install twine
-    - python3 -m twine upload dist/*
+    - apt-get update
+    - pip install hatch
+    - hatch publish
 
 release_job:
   stage: release
